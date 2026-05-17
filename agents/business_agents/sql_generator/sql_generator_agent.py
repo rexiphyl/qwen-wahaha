@@ -1,16 +1,25 @@
 """
 Agent 4: SQL Generator
 Generates correct SQL queries based on approved tables and query context.
+Uses the SQLExecutionTool for validation and schema reference.
 Includes few-shot examples and dialect specifications for SQLite.
 """
 
 from typing import Dict, List, Any, Optional, Tuple
 import re
+import sys
+import os
+
+# Add tools to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'tools'))
+from sql_execution_tool import SQLExecutionTool
 
 
 class SQLGeneratorAgent:
-    def __init__(self, dialect: str = "sqlite"):
+    def __init__(self, dialect: str = "sqlite", db_path: str = "business_db.sqlite"):
         self.dialect = dialect
+        self.db_path = db_path
+        self.tool = SQLExecutionTool(db_path)
         self.few_shot_examples = self._load_few_shot_examples()
         self.max_retries = 2
     
@@ -154,7 +163,9 @@ class SQLGeneratorAgent:
         approved_tables: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """
-        Generate SQL query based on context and approved tables
+        Generate SQL query based on context and approved tables.
+        Uses tool for schema validation.
+        
         Returns SQL string with metadata
         """
         structured = query_context.get("structured", {})
@@ -192,13 +203,13 @@ class SQLGeneratorAgent:
         
         sql_query = "\n".join(sql_parts)
         
-        # Validate SQL syntax (basic validation)
-        is_valid, error_message = self._validate_sql(sql_query)
+        # Validate SQL using tool
+        validation_result = self.tool._validate_sql(sql_query)
         
         return {
             "sql": sql_query,
-            "is_valid": is_valid,
-            "error_message": error_message,
+            "is_valid": validation_result["is_valid"],
+            "error_message": validation_result.get("error"),
             "primary_table": primary_table,
             "tables_used": table_names,
             "aggregation": aggregation,
