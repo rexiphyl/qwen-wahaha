@@ -1,22 +1,60 @@
 ```
 # Database files
 *.sqlite
-*.db
 
-# Python
+# Dependencies
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+
+# Logs and temp files
+*.log
+*.tmp
+
+# Environment
+.env
+.env.local
+*.env.*
+
+# Editors
+.vscode/
+.idea/
+
+# Python specific
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
 .Python
-env/
-venv/
-.venv/
-.ENV
+*.so
+.coverage
+htmlcov/
+.coverage.*
 .python-version
 
-# Logs
-*.log
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDEs
+.vim/
+*.swp
+*.swo
 
 # OS generated files
 .DS_Store
