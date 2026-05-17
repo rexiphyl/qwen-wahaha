@@ -186,7 +186,7 @@ with st.sidebar:
         st.rerun()
     
     st.markdown("---")
-    st.caption("Powered by Groq & Llama 3.1")
+    st.caption("Powered by OpenRouter & NVIDIA Nemotron-3 Super")
 
 # Main content
 st.markdown('<h1 class="main-header">Business Intelligence Agent</h1>', unsafe_allow_html=True)
@@ -410,4 +410,4 @@ if st.session_state.pipeline_running and st.session_state.current_query:
 
 # Footer
 st.markdown("---")
-st.caption("Built with Streamlit, Groq, and SQLite | Multi-turn context enabled")
+st.caption("Built with Streamlit, OpenRouter, and SQLite | Multi-turn context enabled")
