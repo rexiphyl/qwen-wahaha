@@ -1,6 +1,6 @@
 """
 Agent 5: Result Formatter & NL Response
-Executes SQL, validates results, handles errors with self-correction,
+Executes SQL using the SQLExecutionTool, validates results, handles errors with self-correction,
 and formats output with natural language responses.
 """
 
@@ -8,11 +8,18 @@ import sqlite3
 from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime
 import json
+import sys
+import os
+
+# Add tools to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'tools'))
+from sql_execution_tool import SQLExecutionTool
 
 
 class ResultFormatterAgent:
     def __init__(self, db_path: str = "business_db.sqlite"):
         self.db_path = db_path
+        self.tool = SQLExecutionTool(db_path)
         self.max_retries = 2
     
     def execute_and_format(
@@ -21,13 +28,13 @@ class ResultFormatterAgent:
         query_context: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
-        Execute SQL query and format results with natural language response
+        Execute SQL query using tool and format results with natural language response
         Includes validation and self-correction loop
         """
         sql_query = sql_result.get("sql", "")
         
-        # Step 1: Validate SQL syntax
-        validation_result = self._validate_sql_syntax(sql_query)
+        # Step 1: Validate SQL syntax using tool
+        validation_result = self.tool._validate_sql(sql_query)
         if not validation_result["is_valid"]:
             return {
                 "success": False,
@@ -36,7 +43,7 @@ class ResultFormatterAgent:
                 "suggestion": "Please check the SQL syntax"
             }
         
-        # Step 2: Execute with retry logic
+        # Step 2: Execute with retry logic using tool
         execution_result = self._execute_with_retry(sql_query, sql_result, query_context)
         
         if not execution_result["success"]:
@@ -52,73 +59,37 @@ class ResultFormatterAgent:
         
         return formatted_response
     
-    def _validate_sql_syntax(self, sql: str) -> Dict[str, Any]:
-        """Validate SQL syntax before execution"""
-        sql_upper = sql.upper().strip()
-        
-        # Check for basic structure
-        if not sql_upper.startswith("SELECT"):
-            return {"is_valid": False, "error": "Query must start with SELECT"}
-        
-        if "FROM" not in sql_upper:
-            return {"is_valid": False, "error": "Query missing FROM clause"}
-        
-        # Check for dangerous operations
-        dangerous_keywords = ["DROP", "DELETE", "TRUNCATE", "ALTER", "CREATE", "INSERT", "UPDATE"]
-        for keyword in dangerous_keywords:
-            if keyword in sql_upper:
-                # Allow INSERT/UPDATE/CREATE only if they're not the main operation
-                if sql_upper.startswith(keyword):
-                    return {"is_valid": False, "error": f"Dangerous operation detected: {keyword}"}
-        
-        # Check balanced parentheses
-        if sql.count("(") != sql.count(")"):
-            return {"is_valid": False, "error": "Unbalanced parentheses"}
-        
-        return {"is_valid": True, "error": None}
-    
     def _execute_with_retry(
         self, 
         sql: str, 
         sql_result: Dict[str, Any],
         query_context: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Execute SQL with retry mechanism for error correction"""
+        """Execute SQL with retry mechanism for error correction using the tool"""
         last_error = None
         
         for attempt in range(1, self.max_retries + 1):
-            try:
-                conn = sqlite3.connect(self.db_path)
-                cursor = conn.cursor()
-                
-                cursor.execute(sql)
-                
-                # Fetch results
-                columns = [description[0] for description in cursor.description] if cursor.description else []
-                rows = cursor.fetchall()
-                
-                conn.close()
-                
+            # Use tool to execute query
+            result = self.tool.execute_query(sql)
+            
+            if result["success"]:
                 return {
                     "success": True,
-                    "data": rows,
-                    "columns": columns,
-                    "row_count": len(rows),
+                    "data": result["data"],
+                    "columns": result["columns"],
+                    "row_count": result["row_count"],
                     "attempt": attempt,
                     "sql_executed": sql
                 }
-                
-            except sqlite3.Error as e:
-                last_error = str(e)
+            else:
+                last_error = result.get("error", "Unknown error")
                 
                 if attempt < self.max_retries:
                     # Attempt self-correction
-                    corrected_sql = self._attempt_sql_correction(sql, str(e))
+                    corrected_sql = self._attempt_sql_correction(sql, last_error)
                     if corrected_sql != sql:
                         sql = corrected_sql
                         continue
-                
-                conn.close()
         
         return {
             "success": False,
