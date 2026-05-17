@@ -50,11 +50,11 @@ class QueryRewriterAgent:
         }
         
         # Detect business type
-        if any(word in query_lower for word in ["hotel", "room", "booking", "reservation"]):
+        if any(word in query_lower for word in ["hotel", "room", "booking", "reservation", "lodging", "accommodation", "guest", "check-in", "check-out"]):
             intent["business_type"] = "hotel"
-        elif any(word in query_lower for word in ["restaurant", "food", "menu", "order", "dining"]):
+        elif any(word in query_lower for word in ["restaurant", "food", "menu", "order", "dining", "meal", "dish", "vegetarian", "vegan", "salad", "pizza", "burger", "pasta", "recipe", "chef", "table", "waiter"]):
             intent["business_type"] = "restaurant"
-        elif any(word in query_lower for word in ["car", "rental", "vehicle", "auto"]):
+        elif any(word in query_lower for word in ["car", "rental", "vehicle", "auto", "drive", "automobile", "taxi", "uber", "lyft"]):
             intent["business_type"] = "car_rental"
         
         # Detect timeframes
