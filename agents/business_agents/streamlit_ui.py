@@ -5,8 +5,9 @@ import time
 from datetime import datetime
 import sqlite3
 
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add project root directory to path
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, project_root)
 
 from agents.business_agents.orchestrator import TextToSQLOrchestrator
 from dotenv import load_dotenv
