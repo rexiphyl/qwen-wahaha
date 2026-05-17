@@ -1,165 +1,190 @@
-# 🏨 Business Intelligence Text-to-SQL Agent
+# Professional Text-to-SQL Agent with LLMOps
 
-A multi-agent pipeline that converts natural language questions into SQL queries for hotel, restaurant, and car rental businesses.
+A production-ready text-to-SQL system powered by OpenRouter and NVIDIA Nemotron-3 Super, featuring comprehensive intent recognition, 15+ database tables, and a full LLMOps dashboard.
 
 ## Features
 
-- **5 Specialized Agents** working together:
-  1. Query Rewriter - Understands intent and context
-  2. Schema Retriever - Finds relevant tables
-  3. HITL Validator - User approval with 5s auto-approve
-  4. SQL Generator - Creates valid SQL queries
-  5. Result Formatter - Executes and explains results
-
-- **Multi-turn Conversations** - Remember context across queries
-- **Human-in-the-Loop** - Review and approve table selections
-- **Self-Correction** - Automatic retry on SQL errors
-- **Beautiful UI** - Streamlit interface with step-by-step visualization
-
-## Quick Start
-
-### 1. Install Dependencies
-```bash
-pip install -r requirements.txt
-```
-
-### 2. Set Environment Variables
-Create a `.env` file:
-```bash
-GROQ_API_KEY=your_groq_api_key_here
-MODEL_NAME=llama-3.1-8b-instant
-DATABASE_PATH=business_db.sqlite
-```
-
-### 3. Create Database (if not exists)
-```bash
-python create_database.py
-```
-
-### 4. Run the Application
-
-**Option A: Streamlit UI (Recommended)**
-```bash
-streamlit run agents/business_agents/streamlit_ui.py
-```
-Then open http://localhost:8501 in your browser
-
-**Option B: Command Line**
-```bash
-python run_pipeline.py "How many hotel bookings do we have?"
-```
-
-**Option C: Interactive Session**
-```bash
-python -m agents.business_agents.orchestrator --interactive
-```
-
-## Example Queries
-
-### Hotel Business
-- "How many bookings do we have this month?"
-- "Show me available rooms in New York"
-- "What's the total revenue from hotels?"
-- "Which customers have the most loyalty points?"
-
-### Restaurant Business
-- "List all restaurants in Paris"
-- "Show menu items under $10"
-- "Count reservations for tonight"
-- "What are the top-selling dishes?"
-
-### Car Rental Business
-- "How many cars are currently rented?"
-- "Show available SUVs"
-- "Calculate total rental revenue"
-- "Which insurance option is most popular?"
-
-### Cross-Business
-- "Show all payments made yesterday"
-- "Find customers with negative reviews"
-- "Total revenue across all businesses"
+- **Two-Stage Intent Recognition**: Accurately maps questions to correct database tables
+- **15 Database Tables**: Comprehensive schema covering restaurants, hotels, car rentals, payments, and more
+- **LLMOps Dashboard**: Real-time monitoring of query performance, token usage, success rates, and latency
+- **Professional Architecture**: Modular code structure with proper separation of concerns
+- **OpenRouter Integration**: Uses free NVIDIA Nemotron-3 Super 120B model
 
 ## Project Structure
 
 ```
-workspace/
-├── business_db.sqlite              # SQLite database
-├── create_database.py              # Database creation script
-├── run_pipeline.py                 # CLI runner
-├── requirements.txt                # Python dependencies
-├── .env                            # Environment variables
-└── agents/
-    └── business_agents/
-        ├── orchestrator.py         # Main coordinator
-        ├── streamlit_ui.py         # Web interface
-        ├── schema_documentation.txt # Table descriptions
-        ├── query_parser/
-        │   └── query_rewriter_agent.py
-        ├── schema_retriever/
-        │   └── schema_retriever_agent.py
-        ├── hitl_validator/
-        │   └── hitl_validator_agent.py
-        ├── sql_generator/
-        │   └── sql_generator_agent.py
-        ├── result_formatter/
-        │   └── result_formatter_agent.py
-        └── tools/
-            ├── sql_execution_tool.py
-            └── schema_discovery_tool.py
+/workspace
+├── src/
+│   ├── core/
+│   │   ├── config.py          # Configuration management
+│   │   ├── llm_client.py      # OpenRouter API client
+│   │   └── schema.py          # Database schema definitions
+│   ├── agents/
+│   │   ├── intent_recognizer.py  # Intent recognition engine
+│   │   └── orchestrator.py       # Main orchestration logic
+│   ├── llmops/
+│   │   └── dashboard.py       # LLMOps visualization
+│   ├── utils/
+│   │   └── setup_db.py        # Database setup script
+│   └── streamlit_ui.py        # Main Streamlit application
+├── business_db.sqlite         # SQLite database
+├── requirements.txt           # Python dependencies
+├── .env                       # Environment variables (create from .env.example)
+└── .env.example              # Environment template
 ```
 
-## Database Schema
+## Setup Instructions
 
-The database contains **23 tables** across 5 domains:
+### 1. Create `.env` file
 
-### Common Tables (2)
-- `customers` - Customer information
-- `employees` - Staff records
+Copy the example environment file and add your OpenRouter API key:
 
-### Hotel Tables (6)
-- `hotels` - Hotel properties
-- `room_types` - Room categories
-- `hotel_rooms` - Individual rooms
-- `hotel_bookings` - Reservations
-- `hotel_services` - Available services
-- `hotel_service_usage` - Service consumption
-
-### Restaurant Tables (6)
-- `restaurants` - Restaurant locations
-- `menu_categories` - Food categories
-- `menu_items` - Menu offerings
-- `restaurant_reservations` - Table bookings
-- `restaurant_orders` - Customer orders
-- `order_details` - Order line items
-
-### Car Rental Tables (7)
-- `car_categories` - Vehicle types
-- `cars` - Individual vehicles
-- `car_rentals` - Rental agreements
-- `insurance_options` - Coverage plans
-- `rental_insurance` - Purchased insurance
-- `car_additional_services` - Extra services
-- `rental_additional_services` - Added services
-
-### Cross-Business Tables (2)
-- `payments` - All transactions
-- `reviews` - Customer feedback
-
-## Configuration
-
-### Model Settings
-Edit `.env` to change the LLM:
 ```bash
-MODEL_NAME=llama-3.1-8b-instant  # Default
-# Or try: llama-3.3-70b-versatile, mixtral-8x7b-32768
+cp .env.example .env
 ```
 
-### Timeout Settings
-Adjust auto-approval timeout in code:
-```python
-orchestrator = TextToSQLOrchestrator(auto_approve_timeout=10)  # 10 seconds
+Edit `.env` and add your API key:
 ```
+OPENROUTER_API_KEY=sk-or-v1-your-actual-api-key-here
+MODEL_NAME=nvidia/nemotron-3-super-120b-a12b:free
+DATABASE_PATH=business_db.sqlite
+```
+
+Get your free API key from: https://openrouter.ai/keys
+
+### 2. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Setup Database
+
+```bash
+python -c "from src.utils.setup_db import setup_database; setup_database()"
+```
+
+This creates `business_db.sqlite` with 15 tables and sample data:
+- customers, restaurants, menu_items, restaurant_orders, order_items
+- hotels, hotel_bookings
+- cars, car_rentals
+- payments, reviews, promotions, customer_promotions
+- staff, inventory
+
+### 4. Run the Application
+
+```bash
+streamlit run src/streamlit_ui.py
+```
+
+The app will open at http://localhost:8501
+
+## Usage Examples
+
+### Query Interface
+
+Ask natural language questions like:
+
+- **"How many vegetarian orders were placed last week?"** - Queries restaurant Orders with vegetarian items
+- **"Show me all hotel bookings this month"** - Shows hotel booking data
+- **"What are the top 5 most expensive car rentals?"** - Analyzes car rental costs
+- **"How many payments failed last month?"** - Payment analytics
+- **"Show me customer reviews with rating below 3"** - Review analysis
+
+### LLMOps Dashboard
+
+Navigate to the LLMOps Dashboard tab to see:
+- **Success Rate Over Time**: Track query success percentage
+- **Latency Distribution**: Histogram of total and LLM latency
+- **Token Usage**: Input/output tokens per query
+- **Confidence Scores**: Intent recognition confidence distribution
+- **Recent Queries Table**: Last 10 queries with metrics
+- **Summary Statistics**: Total queries, success rate, avg latency, avg tokens
+
+### Database Schema
+
+View all 15 tables with descriptions and column information in the Database Schema tab.
+
+## Architecture Highlights
+
+### Intent Recognition Engine
+
+Two-stage process for accurate table mapping:
+1. **Keyword Extraction**: Identifies relevant terms (vegetarian, booking, rental, etc.)
+2. **Contextual Refinement**: Analyzes question structure to refine table selection
+
+Special handling for:
+- Vegetarian/vegan food queries → menu_items, order_items, restaurant_orders
+- Time-based queries → Filters to tables with date columns
+- Count queries → Targets transaction tables
+
+### LLMOps Tracking
+
+Every query logs:
+- Timestamp and latency metrics
+- Token consumption (input/output/total)
+- Intent recognition confidence
+- Target tables identified
+- Success/failure status
+- Generated SQL
+
+### Security
+
+- Only SELECT statements are executed
+- Parameterized queries prevent SQL injection
+- API keys managed via environment variables
+
+## Sample Questions by Category
+
+### Restaurant & Food
+- How many vegetarian orders were placed last week?
+- Show me all vegan menu items
+- What's the most popular restaurant by order count?
+- Find orders with special instructions
+
+### Hotel Bookings
+- How many bookings do I have this month?
+- Show checked-in guests at Grand Plaza Hotel
+- What's the average booking price by room type?
+
+### Car Rentals
+- Which cars are currently available?
+- Show overdue rentals
+- Calculate total revenue from SUV rentals
+
+### Payments
+- How many payments failed last week?
+- Show pending payments
+- Total payments by method this month
+
+### Cross-Table Queries
+- Show customers who ordered vegetarian food and booked hotels
+- Find customers with both car rentals and restaurant orders
+
+## Troubleshooting
+
+### ModuleNotFoundError: No module named 'agents'
+Ensure you're running from the project root and the `src` directory structure is intact.
+
+### OPENROUTER_API_KEY not configured
+Check that your `.env` file exists and contains a valid API key.
+
+### Database not found
+Run the setup script: `python -c "from src.utils.setup_db import setup_database; setup_database()"`
+
+### Query returns wrong table results
+The intent recognition may need refinement. Check the "Intent Analysis" panel to see which tables were selected.
+
+## Technologies Used
+
+- **Streamlit**: Web UI framework
+- **Plotly**: Interactive visualizations
+- **Pandas**: Data manipulation
+- **Pydantic**: Data validation
+- **Loguru**: Logging
+- **OpenRouter API**: LLM access
+- **SQLite**: Database
 
 ## License
 
-MIT License - Feel free to use and modify!
+MIT License
