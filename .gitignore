@@ -3,12 +3,7 @@
 *.sqlite
 *.db
 
-# Environment files
-.env
-.env.local
-*.env.*
-
-# Python specific
+# Python
 __pycache__/
 *.pyc
 *.pyo
@@ -17,19 +12,15 @@ __pycache__/
 env/
 venv/
 .venv/
-.venv*/
+.ENV
+.ENV.local
+.env.*
 .python-version
-*.pot
-*.py[cod]
-*$py.class
-*$pyc.class
-*.so
-.Python
-cache/
 .pytest_cache/
 .mypy_cache/
 .coverage
 coverage/
+htmlcov/
 
 # Logs
 *.log

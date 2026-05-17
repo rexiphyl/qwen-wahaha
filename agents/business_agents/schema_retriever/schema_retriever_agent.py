@@ -117,9 +117,9 @@ class SchemaRetrieverAgent:
         
         # Business type matching
         business_keywords = {
-            "hotel": ["hotel", "room", "booking", "reservation", "lodging", "accommodation"],
-            "restaurant": ["restaurant", "food", "menu", "order", "dining", "meal", "dish"],
-            "car_rental": ["car", "rental", "vehicle", "auto", "drive", "automobile"]
+            "hotel": ["hotel", "room", "booking", "reservation", "lodging", "accommodation", "guest", "check-in", "check-out", "night", "stay"],
+            "restaurant": ["restaurant", "food", "menu", "order", "dining", "meal", "dish", "vegetarian", "vegan", "salad", "pizza", "burger", "pasta", "recipe", "chef", "table", "waiter", "hungry", "eat", "lunch", "dinner", "breakfast"],
+            "car_rental": ["car", "rental", "vehicle", "auto", "drive", "automobile", "taxi", "uber", "lyft", "rent", "lease"]
         }
         
         for table_name, table_info in self.schema_cache.items():
