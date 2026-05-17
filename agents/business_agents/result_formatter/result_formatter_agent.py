@@ -212,11 +212,21 @@ class ResultFormatterAgent:
         if not data or not columns:
             return []
         
+        # Check if data is already in dict format (from pandas)
+        if isinstance(data[0], dict):
+            return data[:50]  # Limit to 50 rows
+        
+        # Handle tuple/list data
         # For aggregation queries with single result
         if aggregation and len(data) == 1 and len(columns) <= 2:
             result = {}
             for i, col in enumerate(columns):
-                value = data[0][i]
+                if isinstance(data[0], (list, tuple)):
+                    value = data[0][i]
+                elif isinstance(data[0], dict):
+                    value = data[0].get(col, None)
+                else:
+                    value = data[0]
                 if isinstance(value, float):
                     value = round(value, 2)
                 result[col] = value
@@ -227,7 +237,12 @@ class ResultFormatterAgent:
         for row in data[:50]:  # Limit to 50 rows for display
             row_dict = {}
             for i, col in enumerate(columns):
-                value = row[i]
+                if isinstance(row, (list, tuple)):
+                    value = row[i]
+                elif isinstance(row, dict):
+                    value = row.get(col, None)
+                else:
+                    value = row
                 # Format specific types
                 if isinstance(value, float):
                     value = round(value, 2)

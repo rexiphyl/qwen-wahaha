@@ -20,12 +20,12 @@ from business_agents.sql_generator.sql_generator_agent import SQLGeneratorAgent
 from business_agents.result_formatter.result_formatter_agent import ResultFormatterAgent
 
 
-class TextToSQLPipeline:
+class TextToSQLOrchestrator:
     """
-    Main pipeline orchestrating all agents for text-to-SQL conversion
+    Orchestrator for Streamlit integration - coordinates all agents
     """
     
-    def __init__(self, db_path: str = "business_db.sqlite", auto_approve_timeout: int = 5):
+    def __init__(self, db_path: str = "business_db.sqlite", auto_approve_timeout: int = 5, interactive: bool = False):
         # Initialize all agents
         self.query_rewriter = QueryRewriterAgent()
         self.schema_retriever = SchemaRetrieverAgent(db_path)
@@ -35,6 +35,54 @@ class TextToSQLPipeline:
         
         self.pipeline_history: List[Dict[str, Any]] = []
         self.db_path = db_path
+        self.interactive = interactive
+    
+    def rewrite_query(self, user_query: str, history: List[Dict] = None) -> Dict[str, Any]:
+        """Step 1: Rewrite and parse query intent"""
+        # Convert streamlit history to pipeline format if needed
+        return self.query_rewriter.rewrite_query(user_query, use_context=bool(history))
+    
+    def retrieve_schema(self, rewritten_query: str) -> Dict[str, Any]:
+        """Step 2: Find relevant tables"""
+        # Simple keyword-based retrieval for now
+        structured = {"keywords": rewritten_query.lower().split()}
+        relevant_tables = self.schema_retriever.retrieve_relevant_tables(structured, top_k=5)
+        return {"tables": relevant_tables}
+    
+    def generate_sql(self, user_query: str, approved_tables: List[str]) -> Dict[str, Any]:
+        """Step 4: Generate SQL from approved tables"""
+        # Create a minimal rewritten_query structure
+        rewritten_query = {
+            "original": user_query,
+            "rewritten_text": user_query,
+            "structured": {"business_type": "hotel"}  # Default
+        }
+        
+        # Convert table names to table objects if needed
+        table_objects = []
+        for table_name in approved_tables:
+            table_objects.append({"table_name": table_name, "columns": []})
+        
+        sql_result = self.sql_generator.generate_sql(rewritten_query, table_objects)
+        return sql_result
+    
+    def execute_and_format(self, sql_query: str) -> Dict[str, Any]:
+        """Step 5: Execute SQL and format results"""
+        # Create minimal sql_result structure
+        sql_result = {
+            "sql": sql_query,
+            "is_valid": True,
+            "primary_table": "unknown",
+            "tables_used": []
+        }
+        
+        rewritten_query = {
+            "original": "",
+            "rewritten_text": "",
+            "structured": {}
+        }
+        
+        return self.result_formatter.execute_and_format(sql_result, rewritten_query)
     
     def process_query(self, user_query: str, use_context: bool = True, interactive: bool = True) -> Dict[str, Any]:
         """
