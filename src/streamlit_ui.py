@@ -4,6 +4,12 @@ Features: Query interface, Results display, LLMOps Dashboard
 """
 import streamlit as st
 import pandas as pd
+import sys
+import os
+
+# Add project root to path to enable imports
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from src.core.config import Config
 from src.agents.orchestrator import OrchestratorAgent
 from src.llmops.dashboard import LLMOpsDashboard
