@@ -1,0 +1,16 @@
+2026-05-17 10:49:52.923 | INFO     | __main__:setup_database:15 - Setting up database: business_db.sqlite
+2026-05-17 10:49:56.787 | INFO     | __main__:setup_database:15 - Setting up database: business_db.sqlite
+2026-05-17 10:49:56.788 | INFO     | __main__:setup_database:29 - Creating tables...
+2026-05-17 10:49:56.790 | INFO     | __main__:setup_database:242 - Tables created. Inserting sample data...
+2026-05-17 10:49:56.802 | INFO     | __main__:setup_database:458 - Database setup complete! Created 15 tables with sample data.
+2026-05-17 10:50:27.586 | INFO     | src.core.llm_client:__init__:21 - LLM Client initialized with model: nvidia/nemotron-3-super-120b-a12b:free
+2026-05-17 10:50:27.586 | INFO     | src.agents.intent_agent:__init__:19 - Intent Agent initialized
+2026-05-17 10:50:27.586 | INFO     | src.agents.sql_agent:__init__:20 - SQL Agent initialized
+2026-05-17 10:50:27.587 | INFO     | src.agents.execution_agent:__init__:17 - Execution Agent initialized
+2026-05-17 10:50:27.587 | INFO     | src.agents.orchestrator:__init__:25 - Orchestrator Agent initialized with multi-agent pipeline
+2026-05-17 10:50:27.587 | INFO     | src.agents.orchestrator:process_query:33 - Orchestrator received query: How many vegetarian orders were placed last week?
+2026-05-17 10:50:27.587 | INFO     | src.agents.orchestrator:process_query:40 - Stage 1: Intent Recognition
+2026-05-17 10:50:27.588 | INFO     | src.agents.intent_agent:analyze:53 - Intent Agent analyzing: How many vegetarian orders were placed last week?
+2026-05-17 10:50:27.589 | DEBUG    | src.core.llm_client:chat:49 - Sending request to LLM: User Query: How many vegetarian orders were placed last week?...
+2026-05-17 10:50:27.867 | ERROR    | src.core.llm_client:chat:79 - LLM API request failed: 401 Client Error: Unauthorized for url: https://openrouter.ai/api/v1/chat/completions
+2026-05-17 10:50:27.868 | ERROR    | src.agents.intent_agent:analyze:75 - Failed to parse Intent Agent response: Expecting value: line 1 column 1 (char 0)
