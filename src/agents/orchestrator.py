@@ -1,157 +1,90 @@
-"""Text-to-SQL orchestrator coordinating intent recognition and SQL generation."""
-import sqlite3
-import json
-from typing import Dict, Any, Optional
-from datetime import datetime
+"""
+Orchestrator Agent - Coordinates multiple agents to process user queries
+Manages the multi-agent workflow and handles retries
+"""
+from typing import Dict, Any
 from loguru import logger
+from src.core.config import Config, AgentState
+from src.core.llm_client import LLMClient
+from src.agents.intent_agent import IntentAgent
+from src.agents.sql_agent import SQLAgent
+from src.agents.execution_agent import ExecutionAgent
 
-from src.core.config import Config
-from src.core.llm_client import OpenRouterClient
-from src.agents.intent_recognizer import IntentRecognizer
-
-
-class TextToSQLOrchestrator:
-    """Orchestrates the text-to-SQL pipeline with LLMOps tracking."""
+class OrchestratorAgent:
+    """
+    Main orchestrator that coordinates the multi-agent system.
+    Manages workflow: Intent -> SQL Generation -> Execution
+    Implements retry logic and error handling.
+    """
     
     def __init__(self):
-        self.llm_client = OpenRouterClient()
-        self.intent_recognizer = IntentRecognizer()
-        self.db_path = str(Config.DB_PATH_FULL)
-        self.metrics_log = []
+        self.llm_client = LLMClient()
+        self.intent_agent = IntentAgent(self.llm_client)
+        self.sql_agent = SQLAgent(self.llm_client)
+        self.execution_agent = ExecutionAgent()
+        logger.info("Orchestrator Agent initialized with multi-agent pipeline")
     
-    def execute_query(self, question: str) -> Dict[str, Any]:
+    def process_query(self, user_query: str) -> Dict[str, Any]:
         """
-        Execute the full text-to-SQL pipeline.
-        
-        Args:
-            question: Natural language question
-            
-        Returns:
-            Dictionary with query results and metadata
+        Process a user query through the multi-agent pipeline.
+        Returns comprehensive result including all agent logs.
         """
-        start_time = datetime.now()
         
-        # Step 1: Intent Recognition
-        intent_result = self.intent_recognizer.recognize_intent(question)
+        logger.info(f"Orchestrator received query: {user_query}")
         
-        # Step 2: Generate SQL using LLM
-        llm_result = self.llm_client.generate_sql(
-            question=question,
-            schema_context=intent_result["schema_context"]
-        )
+        # Initialize shared state
+        state = AgentState(user_query=user_query)
         
-        # Step 3: Execute SQL if generation was successful
-        sql = llm_result.get("sql", "")
-        execution_result = {"success": False, "data": [], "error": None}
-        
-        if sql and llm_result["success"]:
-            execution_result = self._execute_sql(sql)
-        
-        # Step 4: Compile metrics for LLMOps
-        end_time = datetime.now()
-        total_latency_ms = int((end_time - start_time).total_seconds() * 1000)
-        
-        result = {
-            "question": question,
-            "intent": {
-                "keywords": intent_result["detected_keywords"],
-                "tables": intent_result["refined_tables"],
-                "confidence": intent_result["confidence"]
-            },
-            "sql": sql,
-            "llm_metrics": {
-                "success": llm_result["success"],
-                "input_tokens": llm_result.get("input_tokens", 0),
-                "output_tokens": llm_result.get("output_tokens", 0),
-                "total_tokens": llm_result.get("total_tokens", 0),
-                "model": llm_result.get("model", ""),
-                "llm_latency_ms": llm_result.get("latency_ms", 0),
-                "error": llm_result.get("error")
-            },
-            "execution": execution_result,
-            "total_latency_ms": total_latency_ms,
-            "timestamp": start_time.isoformat(),
-            "status": "success" if execution_result["success"] else "failed"
-        }
-        
-        # Log metrics for LLMOps
-        self._log_metrics(result)
-        
-        return result
-    
-    def _execute_sql(self, sql: str) -> Dict[str, Any]:
-        """Execute SQL query against the database."""
         try:
-            conn = sqlite3.connect(self.db_path)
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
+            # Stage 1: Intent Recognition
+            logger.info("Stage 1: Intent Recognition")
+            state = self.intent_agent.analyze(state)
             
-            # Safety: Only allow SELECT statements
-            if not sql.strip().upper().startswith("SELECT"):
-                return {
-                    "success": False,
-                    "data": [],
-                    "error": "Only SELECT statements are allowed"
-                }
+            if state.error_message:
+                return self._build_response(state, success=False)
             
-            cursor.execute(sql)
-            rows = cursor.fetchall()
-            columns = [description[0] for description in cursor.description] if cursor.description else []
+            if state.confidence_score < Config.CONFIDENCE_THRESHOLD:
+                logger.warning(f"Low confidence in intent: {state.confidence_score}")
+                # Continue anyway but note the low confidence
             
-            # Convert to list of dictionaries
-            data = [dict(row) for row in rows]
+            # Stage 2: SQL Generation
+            logger.info("Stage 2: SQL Generation")
+            state = self.sql_agent.generate(state)
             
-            conn.close()
+            if state.error_message:
+                return self._build_response(state, success=False)
             
-            return {
-                "success": True,
-                "data": data,
-                "row_count": len(data),
-                "columns": columns,
-                "error": None
-            }
+            # Stage 3: Query Execution
+            logger.info("Stage 3: Query Execution")
+            state = self.execution_agent.execute(state)
+            
+            if state.error_message:
+                return self._build_response(state, success=False)
+            
+            logger.info("Query processing completed successfully")
+            return self._build_response(state, success=True)
             
         except Exception as e:
-            logger.error(f"SQL execution error: {e}")
-            return {
-                "success": False,
-                "data": [],
-                "error": str(e)
-            }
+            logger.error(f"Orchestrator error: {str(e)}")
+            state.error_message = f"System error: {str(e)}"
+            return self._build_response(state, success=False)
     
-    def _log_metrics(self, result: Dict[str, Any]):
-        """Log metrics for LLMOps tracking."""
-        self.metrics_log.append(result)
-        
-        # In production, this would write to a file or database
-        logger.info(f"Query processed: status={result['status']}, tokens={result['llm_metrics']['total_tokens']}, latency={result['total_latency_ms']}ms")
-    
-    def get_metrics_summary(self) -> Dict[str, Any]:
-        """Get summary of metrics for LLMOps dashboard."""
-        if not self.metrics_log:
-            return {
-                "total_queries": 0,
-                "successful_queries": 0,
-                "failed_queries": 0,
-                "avg_latency_ms": 0,
-                "total_tokens": 0,
-                "avg_tokens_per_query": 0,
-                "success_rate": 0,
-                "recent_queries": []
-            }
-        
-        total = len(self.metrics_log)
-        successful = sum(1 for m in self.metrics_log if m["status"] == "success")
-        total_tokens = sum(m["llm_metrics"]["total_tokens"] for m in self.metrics_log)
-        total_latency = sum(m["total_latency_ms"] for m in self.metrics_log)
+    def _build_response(self, state: AgentState, success: bool) -> Dict[str, Any]:
+        """Build comprehensive response dictionary"""
         
         return {
-            "total_queries": total,
-            "successful_queries": successful,
-            "failed_queries": total - successful,
-            "avg_latency_ms": round(total_latency / total, 2) if total > 0 else 0,
-            "total_tokens": total_tokens,
-            "avg_tokens_per_query": round(total_tokens / total, 2) if total > 0 else 0,
-            "success_rate": round((successful / total) * 100, 2) if total > 0 else 0,
-            "recent_queries": self.metrics_log[-10:]  # Last 10 queries
+            "success": success,
+            "query": state.user_query,
+            "intent": state.identified_intent,
+            "relevant_tables": state.relevant_tables,
+            "sql": state.generated_sql,
+            "result": state.execution_result,
+            "error": state.error_message,
+            "confidence": state.confidence_score,
+            "agent_logs": state.agent_history,
+            "metadata": {
+                "total_agents": len(state.agent_history),
+                "database": Config.DATABASE_PATH,
+                "model": Config.MODEL_NAME
+            }
         }
