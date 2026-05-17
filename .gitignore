@@ -1,35 +1,45 @@
 ```
-# Python
+# Database files
+*.sqlite
+*.db
+
+# Environment files
+.env
+.env.local
+*.env.*
+
+# Python specific
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-
-# Environment
-.env
-.env.local
-.env.*
-
-# Dependencies
+.Python
+env/
 venv/
 .venv/
-.envrc
+.venv*/
+.python-version
+*.pot
+*.py[cod]
+*$py.class
+*$pyc.class
+*.so
+.Python
+cache/
+.pytest_cache/
+.mypy_cache/
+.coverage
+coverage/
 
 # Logs
 *.log
 
-# Coverage
-.coverage
-htmlcov/
-coverage/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 ```
